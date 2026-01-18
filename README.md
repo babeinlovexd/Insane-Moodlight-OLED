@@ -1,34 +1,90 @@
-![Insane Moodlight V2](insane-moodlight-v2.png)
-INSANE MOODLIGHT OLED V2.0
+<div align="center">
+  <img src="insane-moodlight-v2.png" width="600" style="border-radius: 10px;">
+  <br>
+  <h1>INSANE MOODLIGHT OLED V2.0</h1>
+  <p><i>Ein fortschrittliches Stimmungslicht auf Basis von ESPHome. Fokus auf Hardware-Stabilität, Signalintegrität und Langlebigkeit.</i></p>
+</div>
 
-Dieses Projekt beschreibt ein fortschrittliches Stimmungslicht auf Basis von ESPHome. Im Fokus stehen Hardware-Stabilität, Signalintegrität und Langlebigkeit der Komponenten.
+<br>
+<hr>
+<br>
 
-KONZEPT UND MOTIVATION Das Insane Moodlight V2.0 ist eine dedizierte Hardware-Lösung, die typische Probleme einfacher LED-Projekte adressiert. Dazu gehören eine präzise Spannungsregulierung sowie ein intelligentes Software-Management für das Display und die Energieversorgung.
+<table width="100%" border="0">
+  <tr>
+    <td width="50%" valign="top">
+      <h3>KONZEPT</h3>
+      Das Insane Moodlight V2.0 adressiert typische Probleme von DIY-LED-Projekten durch präzise Spannungsregulierung und intelligentes Software-Management für Display und Energieversorgung.
+    </td>
+    <td width="50%" valign="top">
+      <h3>HARDWARE-SPECS</h3>
+      <ul>
+        <li>Levelshifter: SN74AHCT125N (5V)</li>
+        <li>Schutz: 62-Ohm Datenwiderstände</li>
+        <li>Pufferung: 220uF (ESP) / 3x 470uF (LEDs)</li>
+        <li>Akku: 18650 Li-Ion mit TP4056</li>
+      </ul>
+    </td>
+  </tr>
+</table>
 
-HARDWARE-SPEZIFIKATIONEN Um einen zuverlässigen Betrieb zu gewährleisten, wurden folgende technische Maßnahmen umgesetzt:
+<br>
 
-SIGNALQUALITÄT Einsatz eines SN74AHCT125N Levelshifters zur Anhebung der Datenpegel auf 5V, unterstützt durch einen 100nF Keramikkondensator zur Entstörung.
+<h3>ELEKTRONIK-ARCHITEKTUR</h3>
 
-REFLEXIONSSCHUTZ Integration von 62-Ohm-Widerständen in den Datenleitungen zur Vermeidung von Signalfehlern.
+<p><b>Signalqualität und Schutz</b><br>
+Einsatz eines Levelshifters zur Anhebung der Datenpegel auf 5V, unterstützt durch einen 100nF Keramikkondensator. 62-Ohm-Widerstände in den Datenleitungen eliminieren Reflexionen und garantieren ein sauberes Signalbild.</p>
 
-SPANNUNGSGLÄTTUNG Umfassende Pufferung durch einen 220uF Elko am ESP8266 und drei 470uF Elkos für die 5V-Schiene zur Vermeidung von LED-Flackern.
+<p><b>Spannungsglättung</b><br>
+Umfassende kapazitive Pufferung verhindert LED-Flackern bei Lastspitzen. Die Schaltung ist durch eine Glassicherung und einen LiPo-Laderegler für den autarken Betrieb abgesichert.</p>
 
-SICHERHEIT Absicherung des Systems durch eine Glassicherung und Verwendung eines LiPo-Ladereglers für die 18650er Zelle.
+<p><b>Sensorik und Telemetrie</b><br>
+Erfassung von Umgebungsdaten via DHT-Sensor. Die Batterieüberwachung erfolgt präzise über einen Spannungsteiler am Analog-Eingang A0.</p>
 
-SENSORIK Erfassung von Temperatur und Luftfeuchtigkeit via DHT-Sensor sowie Batterieüberwachung über den Analog-Eingang (A0) mit einem 100k Widerstand.
+<br>
+<hr>
+<br>
 
-SOFTWARE-FUNKTIONEN
+<h3>SOFTWARE-LOGIK</h3>
 
-DISPLAYSCHUTZ UND BETRIEB Ein integrierter Pixel-Shift verschiebt den Bildinhalt alle zwei Minuten, um ein Einbrennen des OLED-Displays dauerhaft zu verhindern. Die Boot-Logik stellt sicher, dass Systemmeldungen die im Flash gespeicherten Nutzer-Nachrichten nicht beeinträchtigen.
+<p><b>Betriebssicherheit</b><br>
+Ein integrierter Pixel-Shift verschiebt den Bildinhalt alle zwei Minuten, um ein Einbrennen des OLED-Displays dauerhaft zu verhindern. Die Boot-Logik schützt gespeicherte Nutzer-Nachrichten im Flash-Speicher.</p>
 
-LICHTSTEUERUNG UND INTERAKTION Master-Toggle: Speicherung aktueller Farb- und Helligkeitswerte beim Ausschalten, um beim nächsten Start exakt den vorherigen Zustand wiederherzustellen. Gruss-Modus: Auslösen von animierten Symbolen (Herz, Stern, Smiley) und individuellen Textzeilen via Home Assistant oder physischem Taster.
+<p><b>Interaktion</b><br>
+Der Master-Toggle speichert aktuelle Farb- und Helligkeitswerte beim Ausschalten global. Beim Neustart wird der exakte vorherige Zustand wiederhergestellt. Der Gruß-Modus ermöglicht animierte Symbole (Herz, Stern, Smiley) und individuelle Texte.</p>
 
-BATTERIEMANAGEMENT Das System verfügt über eine visuelle Warnfunktion bei niedrigem Akkustand: Unter 10 Prozent Kapazität: Rotes Blinken der passiven LEDs im 10-Sekunden-Intervall. Unter 5 Prozent Kapazität: Verkürzung des Warnintervalls auf 5 Sekunden.
+<p><b>Energiemanagement</b><br>
+Automatisches Warnsystem bei kritischer Spannung:<br>
+&bull; Unter 10% Kapazität: Rotes Blinken (10s Intervall)<br>
+&bull; Unter 5% Kapazität: Rotes Blinken (5s Intervall)</p>
 
-INSTALLATION
+<br>
+<hr>
+<br>
 
-Erstellung der secrets.yaml mit den individuellen Netzwerkzugangsdaten.
+<div align="center">
+  <h3>MECHANISCHER AUFBAU</h3>
+  <p>Gehäuse: 15x15 cm Basis | 5 cm Sockel | 3D-Druck optimiert</p>
+</div>
 
-Kompilierung und Upload via ESPHome.
+<p><b>Design</b><br>
+Die Pyramidenflächen sind für optimale Lichtdiffusion konstruiert. Ein transparenter Streifen am Sockel sorgt für ein dezentes "Passive Light".</p>
 
-Integration in Home Assistant zur Steuerung der Helligkeit, Farben und Effekte.
+<p><b>Bedienung</b><br>
+Zentrales OLED-Display mit drei darunterliegenden haptischen Mikroschaltern für die direkte Systemsteuerung ohne App-Zwang.</p>
+
+<br>
+
+<h3>INSTALLATION</h3>
+<ol>
+  <li>secrets.yaml mit Netzwerkdaten konfigurieren.</li>
+  <li>Kompilierung und Upload via ESPHome.</li>
+  <li>Integration in Home Assistant zur Steuerung der Lichteffekte.</li>
+</ol>
+
+<br>
+<hr>
+<br>
+
+<div align="right">
+  <i>Entwickelt für Angelina.</i>
+</div>
