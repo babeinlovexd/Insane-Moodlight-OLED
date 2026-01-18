@@ -1,0 +1,663 @@
+################################################################################
+# PROJEKT: INSANE MOODLIGHT OLED
+################################################################################
+
+esphome:
+  name: insane-moodlight-oled
+  friendly_name: insane-moodlight-oled
+  on_boot:
+    priority: -100
+    then:
+      - globals.set: {id: is_booting, value: 'true'}
+      - script.execute: display_timer
+      - delay: 7s
+      - globals.set: {id: is_booting, value: 'false'}
+
+esp8266:
+  board: d1_mini
+
+# WICHTIG: Logger baud_rate 0 verhindert Flackern an GPIO01 (TX)
+logger:
+  baud_rate: 0
+  tx_buffer_size: 160
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  min_auth_mode: WPA2
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Insane-Moodlight-Oled"
+    password: !secret ap_password
+
+captive_portal:
+
+#-------------------------------------------------------------------------------
+# TEXT-NACHRICHTEN
+#-------------------------------------------------------------------------------
+text:
+  - platform: template
+    name: "Display Nachricht Zeile 1"
+    icon: "mdi:card-text-outline"
+    id: msg_line_1
+    mode: text
+    optimistic: true
+    initial_value: "Hi Angelina!"
+    max_length: 25
+    restore_value: true
+  
+  - platform: template
+    name: "Display Nachricht Zeile 2"
+    icon: "mdi:card-text-outline"
+    id: msg_line_2
+    mode: text
+    optimistic: true
+    initial_value: "I Love U"
+    max_length: 25
+    restore_value: true
+
+#-------------------------------------------------------------------------------
+# LICHT-SYSTEM
+#-------------------------------------------------------------------------------
+light:
+  - platform: neopixelbus
+    icon: "mdi:led-strip-variant"
+    type: GRB
+    variant: WS2812
+    pin: GPIO01
+    num_leds: 6
+    name: "Passive Light"
+    id: passive_light_id
+    method: {type: esp8266_uart, bus: 0}
+    effects:
+      - addressable_lambda:
+          name: "Love Pulse"
+          update_interval: 20ms
+          lambda: |-
+            // Geschwindigkeit und Intensität des Herzschlags
+            float speed = millis() / 1000.0f * 2.0f; 
+            float pulse = (sin(speed * M_PI) + 1.0f) / 2.0f; // Werte zwischen 0 und 1
+            
+            // Farbe mischen: Rot (1.0, 0.0, 0.0) zu Pink (1.0, 0.0, 0.5)
+            float r = 1.0;
+            float g = 0.0;
+            float b = pulse * 0.5f; 
+            
+            for (int i = 0; i < it.size(); i++) {
+              it[i] = Color(r * 255, g * 255, b * 255, pulse * 255);
+            }
+      - addressable_rainbow:
+          name: "Regenbogen"
+      - addressable_lambda:
+          name: "Sternenfunkeln"
+          update_interval: 50ms
+          lambda: |-
+            for (int i = 0; i < it.size(); i++) {
+              // Zufällige Helligkeit für jedes Pixel einzeln
+              float flicker = (float)rand() / (float)RAND_MAX;
+              
+              // Farbe: Viel Rot (255), etwas Grün (ca. 160 für Orange/Gelb), kein Blau
+              // Wir mischen hier ein warmes Gold/Orange
+              uint8_t r = 255;
+              uint8_t g = 160 + (flicker * 40); // Schwankt zwischen Orange und Gelb
+              uint8_t b = 0;
+              
+              // Das Funkeln steuert die Helligkeit (Dimmen)
+              it[i] = Color(r, g, b, (uint8_t)(flicker * 255));
+            }
+
+  - platform: neopixelbus
+    icon: "mdi:led-strip-variant"
+    type: GRB
+    variant: WS2812
+    pin: GPIO02
+    num_leds: 16
+    name: "Mood Light"
+    id: mood_light_id
+    method: {type: esp8266_uart, bus: 1}
+
+#-------------------------------------------------------------------------------
+# SENSOREN
+#-------------------------------------------------------------------------------
+sensor:
+  - platform: dht
+    pin: GPIO04 # Pin D2
+    temperature:
+      name: "Temperatur Rohwert"
+      icon: "mdi:thermometer" 
+      id: temp_raw
+      on_value:
+        then:
+          - component.update: Temperature
+    humidity:
+      name: "Luftfeuchtigkeit Rohwert"
+      icon: "mdi:water-percent"
+      id: hum_raw
+      on_value:
+        then:
+          - component.update: Humidity
+    update_interval: 60s
+
+  - platform: template
+    name: "Temperatur"
+    icon: "mdi:thermometer"
+    id: Temperature
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    lambda: return id(temp_raw).state + id(temp_offset).state;
+
+  - platform: template
+    name: "Luftfeuchtigkeit"
+    icon: "mdi:water-percent"
+    id: Humidity
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    lambda: return id(hum_raw).state + id(hum_offset).state;
+
+  - platform: adc
+    pin: A0
+    name: "Batterie Spannung"
+    id: battery_voltage
+    filters: [{multiply: 4.14}]
+    update_interval: 60s
+
+  - platform: template
+    name: "Batterie Ladestand"
+    id: battery_percent
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    lambda: return clamp((id(battery_voltage).state - 3.2) / (4.2 - 3.2) * 100.0, 0.0, 100.0);
+    on_value:
+      then:
+        - lambda: |-
+            if (x < 20.0) {
+              id(battery_percent).set_icon("mdi:battery-alert");
+            } else if (x < 50.0) {
+              id(battery_percent).set_icon("mdi:battery-50");
+            } else if (x < 85.0) {
+              id(battery_percent).set_icon("mdi:battery-80");
+            } else {
+              id(battery_percent).set_icon("mdi:battery");
+            }
+
+  - platform: uptime
+    name: "Betriebszeit"
+    id: uptime_sensor
+
+  - platform: wifi_signal
+    name: "WLAN Signalstärke"
+    update_interval: 60s
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Adresse"
+    ssid:
+      name: "Verbundenes WLAN"
+    mac_address:
+      name: "MAC Adresse"
+    
+  - platform: version
+    name: "ESPHome Version"
+
+#-------------------------------------------------------------------------------
+# HARDWARE
+#-------------------------------------------------------------------------------
+i2c:
+  sda: GPIO14 # Pin D5
+  scl: GPIO05 # Pin D1
+  frequency: 800kHz
+  
+time:
+  - platform: homeassistant
+    id: time_h
+
+font:
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 12
+    glyphs: ' !"%()+-.,/0123456789:;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz°'
+    
+  - file: "gfonts://Roboto"
+    id: font_medium
+    size: 16
+    glyphs: '0123456789.%°C'
+
+display:
+  - platform: ssd1306_i2c
+    model: "SH1106 128x64"
+    id: x2
+    address: 0x3C
+    setup_priority: -100
+    lambda: |-
+      // --- PIXEL SHIFT VARIABLEN (Schutz vor Einbrennen) ---
+      int ox = id(shift_x);
+      int oy = id(shift_y);
+
+      // PRÜFUNG: 
+      if (id(show_greeting)) {
+        
+        // Display-Helligkeit für den Gruß-Modus setzen
+        id(x2).set_contrast(id(brightness_greeting).state); 
+        
+        // UNTERSCHEIDUNG: Boot-Logo oder Gruß?
+        if (id(is_booting)) {
+            
+            // --- MODUS: BOOT-NACHRICHT (Mittig platziert) ---
+            it.printf(64 + ox, 25 + oy, id(font_small), TextAlign::CENTER, "Insane Moodlight");
+            it.printf(64 + ox, 40 + oy, id(font_small), TextAlign::CENTER, "V2.0 By BabeinlovexD");
+            
+        } else {
+            // --- MODUS: NORMALER GRUSS (Mit Symbolen) ---
+            float pulse = sin(millis() / 300.0f); // Puls-Animation für Symbole
+            int center_x = 64 + ox;
+            int center_y = 18 + oy;
+
+            // Auswahl des Symbols basierend auf dem HA-Menü
+            if (id(greeting_symbol).current_option() == std::string("Herz")) {
+                int r = 9 + (int)(pulse * 2.0f); // Herz schlägt
+                it.filled_circle(center_x - (r - 1), center_y, r); 
+                it.filled_circle(center_x + (r - 1), center_y, r);
+                it.filled_triangle(center_x - 2 * r + 2, center_y + r/2, 
+                                   center_x + 2 * r - 2, center_y + r/2, 
+                                   center_x, center_y + (int)(r * 1.8f));
+
+            } else if (id(greeting_symbol).current_option() == std::string("Stern")) {
+                float r_outer = 13 + (pulse * 3.0f); float r_inner = r_outer / 2.2f;
+                for (int i = 0; i < 10; i++) {
+                    float a1 = i * (M_PI / 5.0f) - (M_PI / 2.0f); float r1 = (i % 2 == 0) ? r_outer : r_inner;
+                    float a2 = (i + 1) * (M_PI / 5.0f) - (M_PI / 2.0f); float r2 = ((i + 1) % 2 == 0) ? r_outer : r_inner;
+                    it.line(center_x + cos(a1)*r1, center_y + sin(a1)*r1, 
+                            center_x + cos(a2)*r2, center_y + sin(a2)*r2);
+                }
+
+            } else if (id(greeting_symbol).current_option() == std::string("Smiley")) {
+                int r = 12 + (int)(pulse * 2.0f); it.circle(center_x, center_y, r); // Kopf
+                it.filled_circle(center_x - 4, center_y - 3, 2); // Auge L
+                it.filled_circle(center_x + 4, center_y - 3, 2); // Auge R
+                for (float a = 0.5; a < 2.6; a += 0.1) { // Mund-Bogen
+                    it.draw_pixel_at(center_x + cos(a) * (r * 0.6f), center_y + sin(a) * (r * 0.6f)); 
+                }
+            }
+
+            // Text aus Home Assistant anzeigen (Zeile 1 & 2)
+            it.printf(64 + ox, 46 + oy, id(font_small), TextAlign::CENTER, "%s", id(msg_line_1).state.c_str());
+            it.printf(64 + ox, 58 + oy, id(font_small), TextAlign::CENTER, "%s", id(msg_line_2).state.c_str());
+        }
+        
+      } else {
+        // --- MODUS: STATUS-ANZEIGE (Normalbetrieb) ---
+        id(x2).set_contrast(id(brightness_status).state); 
+        
+        // Kopfzeile: Uhrzeit (Links) und Datum (Mitte)
+        it.strftime(0 + ox, 0 + oy, id(font_small), "%H:%M", id(time_h).now());
+        it.strftime(64 + ox, 0 + oy, id(font_small), TextAlign::TOP_CENTER, "%d.%m.%y", id(time_h).now());
+
+        // Batterie-Symbol (Rechts oben)
+        int x_b = 105 + ox, y_b = 2 + oy, w_b = 20, h_b = 10;
+        it.rectangle(x_b, y_b, w_b, h_b); // Gehäuse
+        it.vertical_line(x_b + w_b, y_b + 3, 4); // Plus-Pol
+        float b_level = clamp(id(battery_percent).state / 100.0f, 0.0f, 1.0f);
+        it.filled_rectangle(x_b + 1, y_b + 1, (int)(b_level * (w_b - 2)), h_b - 2); // Füllstand
+
+        // Trennlinie
+        it.line(0 + ox, 15 + oy, 128 + ox, 15 + oy); 
+
+        // Linke Seite: Temperatur
+        it.printf(32 + ox, 38 + oy, id(font_medium), TextAlign::CENTER, "%.1f°C", id(Temperature).state);
+        it.printf(32 + ox, 52 + oy, id(font_small), TextAlign::CENTER, "Temp");
+
+        // Trennlinie Vertikal
+        it.vertical_line(64 + ox, 20 + oy, 40); 
+
+        // Rechte Seite: Luftfeuchtigkeit
+        it.printf(96 + ox, 38 + oy, id(font_medium), TextAlign::CENTER, "%.1f%%", id(Humidity).state);
+        it.printf(96 + ox, 52 + oy, id(font_small), TextAlign::CENTER, "Luft");
+      }
+
+#-------------------------------------------------------------------------------
+# GLOBALS 
+#-------------------------------------------------------------------------------
+globals:
+  - id: show_greeting
+    type: bool
+    initial_value: 'false'
+  - id: saved_red
+    type: float
+    restore_value: yes
+    initial_value: '1.0'
+  - id: saved_green
+    type: float
+    restore_value: yes
+    initial_value: '0.5'
+  - id: saved_blue
+    type: float
+    restore_value: yes
+    initial_value: '0.5'
+  - id: saved_brightness
+    type: float
+    restore_value: yes
+    initial_value: '0.5'
+  - id: saved_state
+    type: bool
+    restore_value: yes
+  - id: saved_mood_red
+    type: float
+    restore_value: yes
+    initial_value: '0.5'
+  - id: saved_mood_green
+    type: float
+    restore_value: yes
+    initial_value: '1.0'
+  - id: saved_mood_blue
+    type: float
+    restore_value: yes
+    initial_value: '0.5'
+  - id: saved_mood_brightness
+    type: float
+    restore_value: yes
+    initial_value: '0.5'
+  - id: mood_direction_up
+    type: bool
+    initial_value: 'true'
+  - id: passive_direction_up
+    type: bool
+    initial_value: 'true'
+  - id: shift_x
+    type: int
+    initial_value: '0'
+  - id: shift_y
+    type: int
+    initial_value: '0'
+  - id: is_booting
+    type: bool
+    initial_value: 'false'
+
+#-------------------------------------------------------------------------------
+# NUMMERNFELDER & MENU
+#-------------------------------------------------------------------------------
+number:
+  - platform: template
+    name: "Display Helligkeit Status"
+    id: brightness_status
+    min_value: 0.01
+    max_value: 1.0
+    step: 0.01
+    initial_value: 0.1
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "%"
+    icon: "mdi:brightness-4"
+
+  - platform: template
+    name: "Display Helligkeit Begrüßung"
+    id: brightness_greeting
+    min_value: 0.1
+    max_value: 1.0
+    step: 0.01
+    initial_value: 1.0
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "%"
+    icon: "mdi:brightness-7"
+
+  - platform: template
+    name: "Begrüßungs Dauer"
+    icon: "mdi:clock-end"
+    id: greeting_duration
+    min_value: 5
+    max_value: 60
+    step: 1
+    initial_value: 5
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "s"
+
+  - platform: template
+    name: "Temperatur Offset"
+    icon: "mdi:thermometer-plus"
+    id: temp_offset
+    min_value: -10.0
+    max_value: 10.0
+    step: 0.1
+    initial_value: 0.0
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "°C"
+    mode: box
+
+  - platform: template
+    name: "Luftfeuchtigkeit Offset"
+    icon: "mdi:water-percent-alert"
+    id: hum_offset
+    min_value: -20.0
+    max_value: 20.0
+    step: 1.0
+    initial_value: 0.0
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "%"
+    mode: box
+
+select:
+  - platform: template
+    name: "Begrüßungs Symbol"
+    id: greeting_symbol
+    optimistic: true
+    restore_value: true
+    initial_option: "Herz"
+    options:
+      - "Herz"
+      - "Stern"
+      - "Smiley"
+    icon: "mdi:shape-outline"
+
+  - platform: template
+    name: "Begrüßungs Lichteffekt"
+    id: greeting_light_effect
+    optimistic: true
+    restore_value: true
+    initial_option: "Love Pulse"
+    options:
+      - "none"
+      - "Love Pulse"
+      - "Regenbogen"
+      - "Sternenfunkeln"
+    icon: "mdi:creation-outline"
+#-------------------------------------------------------------------------------
+# BUTTONS & SWITCH
+#-------------------------------------------------------------------------------
+button:
+  - platform: template
+    name: "Begrüßung abspielen"
+    id: trigger_greeting_button
+    icon: "mdi:heart-flash"
+    on_press:
+      - script.execute: display_timer
+
+  - platform: restart
+    name: "Gerät Neustarten"
+    icon: "mdi:restart"
+
+  - platform: template
+    name: "Gesamt Licht Toggle"
+    id: master_toggle_button
+    icon: "mdi:power"
+    on_press:
+      then:
+        - if:
+            # PRÜFUNG: Ist irgendein Licht an?
+            condition:
+              lambda: 'return id(passive_light_id).remote_values.is_on() || id(mood_light_id).remote_values.is_on();'
+            then:
+              # FALL A: Licht ist an -> Werte speichern und AUSSCHALTEN
+              - lambda: |-
+                  auto p = id(passive_light_id).remote_values;
+                  id(saved_red) = p.get_red(); id(saved_green) = p.get_green(); 
+                  id(saved_blue) = p.get_blue(); id(saved_brightness) = p.get_brightness();
+                  
+                  auto m = id(mood_light_id).remote_values;
+                  id(saved_mood_red) = m.get_red(); id(saved_mood_green) = m.get_green();
+                  id(saved_mood_blue) = m.get_blue(); id(saved_mood_brightness) = m.get_brightness();
+              - light.turn_off: passive_light_id
+              - light.turn_off: mood_light_id
+              - logger.log: "Master Toggle: Alles AUS (Werte gespeichert)"
+            else:
+              # FALL B: Licht ist aus -> Gespeicherte Werte laden und EINSCHALTEN
+              - light.turn_on: 
+                  id: passive_light_id
+                  red: !lambda "return id(saved_red);"
+                  green: !lambda "return id(saved_green);"
+                  blue: !lambda "return id(saved_blue);"
+                  brightness: !lambda "return id(saved_brightness);"
+              - light.turn_on: 
+                  id: mood_light_id
+                  red: !lambda "return id(saved_mood_red);"
+                  green: !lambda "return id(saved_mood_green);"
+                  blue: !lambda "return id(saved_mood_blue);"
+                  brightness: !lambda "return id(saved_mood_brightness);"
+              - logger.log: "Master Toggle: Alles AN (Werte geladen)"
+
+#-------------------------------------------------------------------------------
+# BEDIENUNG
+#-------------------------------------------------------------------------------
+binary_sensor:
+  # TASTER 1 (D6): Info & Power Toggle
+  - platform: gpio
+    name: "Power Led"
+    id: power_taster_id
+    pin: {number: GPIO12, inverted: true, mode: INPUT_PULLUP}
+    on_click:
+      - min_length: 50ms
+        max_length: 499ms
+        then:
+          - script.execute: display_timer
+      - min_length: 500ms
+        max_length: 3000ms 
+        then:
+          - if:
+              condition:
+                lambda: 'return id(passive_light_id).remote_values.is_on() || id(mood_light_id).remote_values.is_on();'
+              then:
+                - button.press: master_toggle_button
+
+  # TASTER 2 (D7): Mood Light Steuerung
+  - platform: gpio
+    name: "Mood Light"
+    id: mood_light_taster_id
+    pin: {number: GPIO13, inverted: true, mode: INPUT_PULLUP}
+    filters: [{delayed_on: 25ms}]
+    on_multi_click:
+      - timing: [ON for 50ms to 600ms, OFF for 50ms to 600ms, ON for 50ms to 600ms]
+        then: # Helligkeit dimmen
+          - lambda: |-
+              auto call = id(mood_light_id).make_call();
+              float cur = id(mood_light_id).remote_values.get_brightness();
+              if (id(mood_direction_up)) { cur += 0.1; if (cur >= 1.0) {cur = 1.0; id(mood_direction_up) = false;} }
+              else { cur -= 0.1; if (cur <= 0.1) {cur = 0.1; id(mood_direction_up) = true;} }
+              id(saved_mood_brightness) = cur;
+              call.set_brightness(cur); call.perform();
+      - timing: [ON for 50ms to 800ms, OFF for at least 500ms]
+        then: # Zufallsfarbe + Speichern
+          - lambda: |-
+              float r = (float)rand()/(float)RAND_MAX;
+              float g = (float)rand()/(float)RAND_MAX;
+              float b = (float)rand()/(float)RAND_MAX;
+              id(saved_mood_red) = r; id(saved_mood_green) = g; id(saved_mood_blue) = b;
+              auto call = id(mood_light_id).make_call();
+              call.set_rgb(r, g, b); call.perform();
+
+  # TASTER 3 (D3): Passive Light Steuerung
+  - platform: gpio
+    name: "Passive Light"
+    id: passive_light_taster_id
+    pin: {number: GPIO00, inverted: true, mode: INPUT_PULLUP}
+    filters: [{delayed_on: 25ms}]
+    on_multi_click:
+      - timing: [ON for 50ms to 600ms, OFF for 50ms to 600ms, ON for 50ms to 600ms]
+        then: # Helligkeit dimmen
+          - lambda: |-
+              auto call = id(passive_light_id).make_call();
+              float cur = id(passive_light_id).remote_values.get_brightness();
+              if (id(passive_direction_up)) { cur += 0.1; if (cur >= 1.0) {cur = 1.0; id(passive_direction_up) = false;} }
+              else { cur -= 0.1; if (cur <= 0.1) {cur = 0.1; id(passive_direction_up) = true;} }
+              id(saved_brightness) = cur;
+              call.set_brightness(cur); call.perform();
+      - timing: [ON for 50ms to 800ms, OFF for at least 500ms]
+        then: # Zufallsfarbe + Speichern
+          - lambda: |-
+              float r = (float)rand()/(float)RAND_MAX;
+              float g = (float)rand()/(float)RAND_MAX;
+              float b = (float)rand()/(float)RAND_MAX;
+              id(saved_red) = r; id(saved_green) = g; id(saved_blue) = b;
+              auto call = id(passive_light_id).make_call();
+              call.set_rgb(r, g, b); call.perform();
+
+#-------------------------------------------------------------------------------
+# AUTOMATISIERUNG
+#-------------------------------------------------------------------------------
+script:
+  - id: display_timer
+    mode: restart
+    then:
+      - lambda: |-
+          // Aktuellen Zustand der LEDs abfragen
+          auto p = id(passive_light_id).remote_values;
+          id(saved_state) = p.is_on();
+          
+          // Nur speichern, wenn gerade kein Effekt läuft (sonst speichern wir Puls-Werte)
+          if (id(saved_state) && id(passive_light_id).get_effect_name() == "None") {
+            id(saved_red) = p.get_red();
+            id(saved_green) = p.get_green();
+            id(saved_blue) = p.get_blue();
+            id(saved_brightness) = p.get_brightness(); // HIER speichern wir deine Taster-Einstellung
+          }
+
+      - globals.set: {id: show_greeting, value: 'true'}
+
+      # BEGRÜSSUNG STARTET (Hell)
+      - light.turn_on:
+          id: passive_light_id
+          brightness: 1.0 # Während der Begrüßung soll es richtig leuchten
+          effect: !lambda "return id(greeting_light_effect).current_option();"
+
+      - delay: !lambda "return id(greeting_duration).state * 1000;"
+
+      - globals.set: {id: show_greeting, value: 'false'}
+
+      # ZURÜCK ZUM ALTEN ZUSTAND
+      - if:
+          condition:
+            lambda: 'return id(saved_state);'
+          then:
+            - light.turn_on:
+                id: passive_light_id
+                effect: "none"
+                red: !lambda "return id(saved_red);"
+                green: !lambda "return id(saved_green);"
+                blue: !lambda "return id(saved_blue);"
+                # HIER nutzen wir jetzt den gespeicherten Wert vom Taster!
+                brightness: !lambda "return id(saved_brightness);"
+          else:
+            - light.turn_off: passive_light_id
+
+#-------------------------------------------------------------------------------
+# TAKTGEBER 
+#-------------------------------------------------------------------------------
+interval:
+  - interval: 2min
+    then:
+      - lambda: |-
+          // Wechselt die Offsets alle 2 Minuten zwischen 0 und 1
+          id(shift_x) = (id(shift_x) + 1) % 2;
+          id(shift_y) = (id(shift_y) + 1) % 2;
