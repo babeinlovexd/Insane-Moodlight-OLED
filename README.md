@@ -80,6 +80,19 @@ Zentrales OLED-Display mit drei darunterliegenden haptischen Mikroschaltern für
   <li>Kompilierung und Upload via ESPHome.</li>
   <li>Integration in Home Assistant zur Steuerung der Lichteffekte.</li>
 </ol>
+
+<br>
+<hr>
+<br>
+
+<h3>SMART HOME INTEGRATION</h3>
+<p>Die vollständige Steuerung erfolgt über Home Assistant. Hier werden alle Parameter von der Display-Helligkeit bis zu individuellen Gruß-Texten verwaltet.</p>
+
+<div align="center">
+  <img src="steuerelemente.png" width="300">
+  <img src="sensoren.png" width="300">
+  <img src="diagnose.png" width="300">
+</div>
 <br>
 <hr>
 <br>
@@ -100,4 +113,5 @@ Im Repository befindet sich ein dedizierter Ordner mit den <b>Gerber-Dateien</b>
 <div align="right">
   <i>Entwickelt für Angelina.</i>
 </div>
+
 
