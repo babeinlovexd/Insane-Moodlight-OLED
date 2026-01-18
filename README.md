@@ -1,44 +1,34 @@
 ![Insane Moodlight V2](insane-moodlight-v2.png)
-Insane Moodlight OLED V2.0
-Dieses Projekt ist mein Custom-Stimmungslicht, basierend auf ESPHome. Es ist kein billiger LED-Streifen, sondern eine durchdachte Hardware-Lösung mit Fokus auf Signalqualität, Displayschutz und einer persönlichen Note.
+INSANE MOODLIGHT OLED V2.0
 
-Warum "Insane"?
-Ich habe hier nicht nur ein paar LEDs zusammengesteckt. Die Hardware ist auf Stabilität ausgelegt, und die Software löst echte Probleme wie OLED-Einbrennen und Akku-Management.
+Dieses Projekt beschreibt ein fortschrittliches Stimmungslicht auf Basis von ESPHome. Im Fokus stehen Hardware-Stabilität, Signalintegrität und Langlebigkeit der Komponenten.
 
-Die Hardware (Sauber aufgebaut!)
-Wer LEDs mit 5V betreibt, weiß, dass der 3.3V Pegel vom ESP oft zickt. Deshalb steckt hier ein ordentlicher Aufbau drin:
+KONZEPT UND MOTIVATION Das Insane Moodlight V2.0 ist eine dedizierte Hardware-Lösung, die typische Probleme einfacher LED-Projekte adressiert. Dazu gehören eine präzise Spannungsregulierung sowie ein intelligentes Software-Management für das Display und die Energieversorgung.
 
-Signalqualität: SN74AHCT125N Levelshifter für saubere 5V Datenpegel + 100nF Keramik-Kondensator zur Entstörung.
+HARDWARE-SPEZIFIKATIONEN Um einen zuverlässigen Betrieb zu gewährleisten, wurden folgende technische Maßnahmen umgesetzt:
 
-Schutz: 62 Ohm Widerstände in den Datenleitungen verhindern Reflexionen.
+SIGNALQUALITÄT Einsatz eines SN74AHCT125N Levelshifters zur Anhebung der Datenpegel auf 5V, unterstützt durch einen 100nF Keramikkondensator zur Entstörung.
 
-Spannungsstabilität: Massive Pufferung gegen Flicker! 220µF am ESP (3.3V) und gleich drei 470µF Elkos für die 5V Schiene und die LED-Ausgänge.
+REFLEXIONSSCHUTZ Integration von 62-Ohm-Widerständen in den Datenleitungen zur Vermeidung von Signalfehlern.
 
-Sicherheit: Glassicherung für den Brandfall und ein anständiger LiPo-Laderegler für die Lithium-Zelle (inkl. Halterung).
+SPANNUNGSGLÄTTUNG Umfassende Pufferung durch einen 220uF Elko am ESP8266 und drei 470uF Elkos für die 5V-Schiene zur Vermeidung von LED-Flackern.
 
-Interaktion: 3x 6x6x6 Mikroschalter für die manuelle Steuerung.
+SICHERHEIT Absicherung des Systems durch eine Glassicherung und Verwendung eines LiPo-Ladereglers für die 18650er Zelle.
 
-Sensorik: DHT-Sensor und Batterieüberwachung über A0 (mit 100k Widerstand).
+SENSORIK Erfassung von Temperatur und Luftfeuchtigkeit via DHT-Sensor sowie Batterieüberwachung über den Analog-Eingang (A0) mit einem 100k Widerstand.
 
-Was die Software alles regelt
-Burn-In Protection: OLEDs brennen ein, wenn man nichts tut. Mein Code verschiebt das gesamte Bild alle 2 Minuten (Pixel-Shift), damit die Anzeige Jahre hält.
+SOFTWARE-FUNKTIONEN
 
-Greeting-System: Per Knopfdruck oder Home Assistant startet eine Sequenz mit schlagendem Herz, Stern oder Smiley – inkl. zwei Textzeilen, die man live ändern kann.
+DISPLAYSCHUTZ UND BETRIEB Ein integrierter Pixel-Shift verschiebt den Bildinhalt alle zwei Minuten, um ein Einbrennen des OLED-Displays dauerhaft zu verhindern. Die Boot-Logik stellt sicher, dass Systemmeldungen die im Flash gespeicherten Nutzer-Nachrichten nicht beeinträchtigen.
 
-Master-Toggle: Ein langer Druck auf Taster 1 oder ein Klick in HA speichert die aktuellen Farbwerte in Globals und schaltet alles aus. Beim Wiedereinschalten kommt exakt dein Licht-Setup zurück.
+LICHTSTEUERUNG UND INTERAKTION Master-Toggle: Speicherung aktueller Farb- und Helligkeitswerte beim Ausschalten, um beim nächsten Start exakt den vorherigen Zustand wiederherzustellen. Gruss-Modus: Auslösen von animierten Symbolen (Herz, Stern, Smiley) und individuellen Textzeilen via Home Assistant oder physischem Taster.
 
-Visueller Akku-Alarm: Wenn die Spannung einbricht, warnt das Licht von selbst:
+BATTERIEMANAGEMENT Das System verfügt über eine visuelle Warnfunktion bei niedrigem Akkustand: Unter 10 Prozent Kapazität: Rotes Blinken der passiven LEDs im 10-Sekunden-Intervall. Unter 5 Prozent Kapazität: Verkürzung des Warnintervalls auf 5 Sekunden.
 
-Unter 10% -> Passive LEDs blitzen alle 10 Sek. rot auf.
+INSTALLATION
 
-Unter 5% -> Intervall verkürzt sich auf 5 Sek. (Laden angesagt!).
+Erstellung der secrets.yaml mit den individuellen Netzwerkzugangsdaten.
 
-Boot-Logic: Beim Starten wird ein Logo angezeigt, ohne die im Flash gespeicherten persönlichen Nachrichten zu überschreiben.
+Kompilierung und Upload via ESPHome.
 
-Setup
-secrets.yaml anlegen (WLAN, Keys).
-
-Per ESPHome flashen.
-
-
-In Home Assistant über die neue "Master Toggle" Entität oder die Slider für Helligkeit und Effekte (Love Pulse, Sternenfunkeln) steuern.
+Integration in Home Assistant zur Steuerung der Helligkeit, Farben und Effekte.
