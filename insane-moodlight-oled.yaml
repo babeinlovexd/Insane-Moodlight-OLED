@@ -24,11 +24,11 @@ logger:
 # Enable Home Assistant API
 api:
   encryption:
-    key: !secret api_encryption_key
+    key: "CUR4QPW5jv79DwQbk4cbECm6wb3Vg0OdzRvXGAE9S/A="
 
 ota:
   - platform: esphome
-    password: !secret ota_password
+    password: "8d245500d220a1353035425115b77cf4"
 
 wifi:
   ssid: !secret wifi_ssid
@@ -38,7 +38,7 @@ wifi:
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Insane-Moodlight-Oled"
-    password: !secret ap_password
+    password: "A0pWup9lmZEM"
 
 captive_portal:
 
@@ -165,30 +165,24 @@ sensor:
     lambda: return id(hum_raw).state + id(hum_offset).state;
 
   - platform: adc
-    pin: A0
     name: "Batterie Spannung"
+    icon: "mdi:lightning-bolt"
+    pin: A0
     id: battery_voltage
-    filters: [{multiply: 4.14}]
-    update_interval: 60s
+    update_interval: 30s 
+    filters:
+      - multiply: 4.3
+    on_value:
+      then:
+        - component.update: x2
 
   - platform: template
     name: "Batterie Ladestand"
     id: battery_percent
     unit_of_measurement: "%"
     accuracy_decimals: 0
+    icon: "mdi:battery"
     lambda: return clamp((id(battery_voltage).state - 3.2) / (4.2 - 3.2) * 100.0, 0.0, 100.0);
-    on_value:
-      then:
-        - lambda: |-
-            if (x < 20.0) {
-              id(battery_percent).set_icon("mdi:battery-alert");
-            } else if (x < 50.0) {
-              id(battery_percent).set_icon("mdi:battery-50");
-            } else if (x < 85.0) {
-              id(battery_percent).set_icon("mdi:battery-80");
-            } else {
-              id(battery_percent).set_icon("mdi:battery");
-            }
 
   - platform: uptime
     name: "Betriebszeit"
@@ -244,13 +238,13 @@ display:
       int ox = id(shift_x);
       int oy = id(shift_y);
 
-      // PRÜFUNG: 
+      // PRÜFUNG: Sollen wir gerade eine Begrüßung/Boot-Nachricht zeigen?
       if (id(show_greeting)) {
         
         // Display-Helligkeit für den Gruß-Modus setzen
         id(x2).set_contrast(id(brightness_greeting).state); 
         
-        // UNTERSCHEIDUNG: Boot-Logo oder Gruß?
+        // UNTERSCHEIDUNG: Boot-Logo oder Angelina-Gruß?
         if (id(is_booting)) {
             
             // --- MODUS: BOOT-NACHRICHT (Mittig platziert) ---
@@ -303,15 +297,32 @@ display:
         it.strftime(0 + ox, 0 + oy, id(font_small), "%H:%M", id(time_h).now());
         it.strftime(64 + ox, 0 + oy, id(font_small), TextAlign::TOP_CENTER, "%d.%m.%y", id(time_h).now());
 
-        // Batterie-Symbol (Rechts oben)
+        // --- Batterie & Lade-Logik (NUR EINMAL DEFINIEREN) ---
         int x_b = 105 + ox, y_b = 2 + oy, w_b = 20, h_b = 10;
+        float b_level;
+
+        if (id(is_charging_signal).state) {
+            // MODUS: LADEN (Animation & Blitz)
+            b_level = fmod(millis() / 1000.0f, 1.0f); 
+            
+            // Profi-Blitz links neben der Batterie
+            int bx = x_b - 10; 
+            it.line(bx + 4, y_b,     bx + 1, y_b + 5); 
+            it.line(bx + 1, y_b + 5, bx + 5, y_b + 5);
+            it.line(bx + 5, y_b + 4, bx + 2, y_b + 10);
+            it.line(bx + 2, y_b + 10, bx + 4, y_b + 4);
+        } else {
+            // MODUS: AKKU (Statisch)
+            b_level = clamp(id(battery_percent).state / 100.0f, 0.0f, 1.0f);
+        }
+
+        // Zeichnen der Batterie
         it.rectangle(x_b, y_b, w_b, h_b); // Gehäuse
         it.vertical_line(x_b + w_b, y_b + 3, 4); // Plus-Pol
-        float b_level = clamp(id(battery_percent).state / 100.0f, 0.0f, 1.0f);
-        it.filled_rectangle(x_b + 1, y_b + 1, (int)(b_level * (w_b - 2)), h_b - 2); // Füllstand
+        it.filled_rectangle(x_b + 2, y_b + 2, (int)(b_level * (w_b - 4)), h_b - 4); // Füllstand
 
         // Trennlinie
-        it.line(0 + ox, 15 + oy, 128 + ox, 15 + oy); 
+        it.line(0 + ox, 15 + oy, 128 + ox, 15 + oy);
 
         // Linke Seite: Temperatur
         it.printf(32 + ox, 38 + oy, id(font_medium), TextAlign::CENTER, "%.1f°C", id(Temperature).state);
@@ -598,6 +609,26 @@ binary_sensor:
               id(saved_red) = r; id(saved_green) = g; id(saved_blue) = b;
               auto call = id(passive_light_id).make_call();
               call.set_rgb(r, g, b); call.perform();
+
+  - platform: gpio
+    pin: 
+      number: GPIO15
+      mode: INPUT
+    name: "Ladevorgang aktiv"
+    id: is_charging_signal
+    on_state:
+      then:
+        # Sofortiges Update beim Ein-/Austecken
+        - component.update: x2
+    on_press:
+      then:
+        # Solange das Kabel steckt, das Display für die Animation "wachhalten"
+        - while:
+            condition:
+              lambda: 'return id(is_charging_signal).state;'
+            then:
+              - component.update: x2
+              - delay: 200ms
 
 #-------------------------------------------------------------------------------
 # AUTOMATISIERUNG
