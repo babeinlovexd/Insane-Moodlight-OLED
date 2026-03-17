@@ -100,7 +100,7 @@ Zentrales OLED-Display mit drei darunterliegenden haptischen Mikroschaltern für
 <h3>ERWEITERBARKEIT UND PCB</h3>
 
 <p><b>Zukunftssicheres Design</b><br>
-Auf der Platine wurden gezielt Lötpads für die Pins <code>RST</code>, <code>D0</code>, <code>D8</code> und <code>RX</code> herausgeführt. Diese dienen als Schnittstellen für zukünftige Hardware-Erweiterungen oder individuelle Funktionsänderungen ohne mechanische Eingriffe in das bestehende System.</p>
+Auf der Platine wurden gezielt Lötpads für die Pins <code>RST</code>, <code>D0</code> und <code>RX</code> herausgeführt. Diese dienen als Schnittstellen für zukünftige Hardware-Erweiterungen oder individuelle Funktionsänderungen ohne mechanische Eingriffe in das bestehende System.</p>
 
 <p><b>Platinen-Fertigung</b><br>
 Im Repository befindet sich ein dedizierter Ordner mit den <b>Gerber-Dateien</b>. Damit kann die passende Platine direkt bei einem Platinen-Service (z.B. JLCPCB oder PCBWay) bestellt werden, um einen industriell sauberen Aufbau des Moodlights zu garantieren.</p>
