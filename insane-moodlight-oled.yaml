@@ -340,6 +340,9 @@ display:
 # GLOBALS 
 #-------------------------------------------------------------------------------
 globals:
+  - id: battery_blink_counter
+    type: int
+    initial_value: '0'
   - id: show_greeting
     type: bool
     initial_value: 'false'
@@ -634,6 +637,44 @@ binary_sensor:
 # AUTOMATISIERUNG
 #-------------------------------------------------------------------------------
 script:
+  - id: battery_warning_blink
+    then:
+      # Nur blinken, wenn nicht gerade eine Begrüßung läuft
+      - if:
+          condition:
+            lambda: 'return !id(show_greeting);'
+          then:
+            - lambda: |-
+                auto p = id(passive_light_id).remote_values;
+                id(saved_state) = p.is_on();
+                if (id(saved_state) && id(passive_light_id).get_effect_name() == "None") {
+                  id(saved_red) = p.get_red();
+                  id(saved_green) = p.get_green();
+                  id(saved_blue) = p.get_blue();
+                  id(saved_brightness) = p.get_brightness();
+                }
+            - light.turn_on:
+                id: passive_light_id
+                red: 1.0
+                green: 0.0
+                blue: 0.0
+                brightness: 1.0
+                effect: "none"
+            - delay: 500ms
+            - if:
+                condition:
+                  lambda: 'return id(saved_state);'
+                then:
+                  - light.turn_on:
+                      id: passive_light_id
+                      red: !lambda "return id(saved_red);"
+                      green: !lambda "return id(saved_green);"
+                      blue: !lambda "return id(saved_blue);"
+                      brightness: !lambda "return id(saved_brightness);"
+                      effect: "none"
+                else:
+                  - light.turn_off: passive_light_id
+
   - id: display_timer
     mode: restart
     then:
@@ -682,6 +723,32 @@ script:
 # TAKTGEBER 
 #-------------------------------------------------------------------------------
 interval:
+  - interval: 5s
+    then:
+      - lambda: |-
+          if (!id(is_charging_signal).state) {
+            float batt = id(battery_percent).state;
+            id(battery_blink_counter) += 5;
+
+            if (batt <= 5.0) {
+              // Unter 5% -> alle 5 Sekunden blinken
+              if (id(battery_blink_counter) >= 5) {
+                id(battery_warning_blink).execute();
+                id(battery_blink_counter) = 0;
+              }
+            } else if (batt <= 10.0) {
+              // Unter 10% -> alle 10 Sekunden blinken
+              if (id(battery_blink_counter) >= 10) {
+                id(battery_warning_blink).execute();
+                id(battery_blink_counter) = 0;
+              }
+            } else {
+               id(battery_blink_counter) = 0;
+            }
+          } else {
+            id(battery_blink_counter) = 0;
+          }
+
   - interval: 2min
     then:
       - lambda: |-
