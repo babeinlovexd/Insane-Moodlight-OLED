@@ -1,101 +1,86 @@
-# ✨ Insane Moodlight OLED V2.0
-<div align="center">
-  <img src="https://img.shields.io/github/v/release/babeinlovexd/Insane-Moodlight-OLED?style=for-the-badge&color=2ecc71" alt="Latest Release">
-  <img src="https://img.shields.io/badge/Status-Stable-2ecc71?style=for-the-badge" alt="Status">
-  <img src="https://img.shields.io/badge/ESPHome-Ready-03A9F4?style=for-the-badge&logo=esphome" alt="ESPHome">
-  <img src="https://img.shields.io/badge/Hardware-V2.0-f39c12?style=for-the-badge&logo=pcb" alt="Hardware Version">
-  <img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey?style=for-the-badge&logo=creative-commons" alt="License: CC BY-NC-SA 4.0">
-</div>
-<br>
+<p align="center">
+  <a href="https://github.com/babeinlovexd"><img src="https://raw.githubusercontent.com/babeinlovexd/babeinlovexd/main/bxd-github-header.svg" width="520" alt="BxD / BabeinlovexD"></a>
+</p>
 
-Willkommen beim **Insane Moodlight OLED V2.0** – Einem fortschrittlichen Stimmungslicht auf Basis von ESPHome. Mit einem klaren Fokus auf Hardware-Stabilität, Signalintegrität und Langlebigkeit entwickelt für die perfekte Atmosphäre in deinem Smart Home.
+# Insane Moodlight OLED
 
-<div align="center">
-  <img src="insane-moodlight-v2.png" width="600" style="border-radius: 10px;" alt="Insane Moodlight V2">
-</div>
+[Fragen & Fehler](https://github.com/babeinlovexd/Insane-Moodlight-OLED/issues) · [Releases](https://github.com/babeinlovexd/Insane-Moodlight-OLED/releases)
 
----
+Ein **ESP8266-Stimmungslicht mit OLED-Display**, LED-Effekten und eigenen Grußnachrichten. Das Projekt verbindet lokale Taster mit ESPHome und Home Assistant.
 
-## 💡 Konzept & Architektur
-Das Insane Moodlight V2.0 adressiert typische Probleme von DIY-LED-Projekten durch präzise Spannungsregulierung und intelligentes Software-Management für Display und Energieversorgung.
+<p align="center"><img src="insane-moodlight-v2.png" alt="Insane Moodlight OLED" width="580"></p>
 
-### 🔥 Hardware-Specs
-* **Levelshifter:** SN74AHCT125N für saubere 5V Datensignale.
-* **Signalintegrität:** 62-Ohm Datenwiderstände in den Leitungen eliminieren Reflexionen und garantieren ein perfektes Signalbild.
-* **Spannungsglättung & Pufferung:** 220uF (ESP) und 3x 470uF (LEDs) kapazitive Pufferung verhindern LED-Flackern bei Lastspitzen.
-* **Akku & Energiemanagement:** 18650 Li-Ion Batterie in Kombination mit einem TP4056 Laderegler für den autarken Betrieb. Absicherung durch eine Glassicherung.
-* **Sensorik:** Erfassung von Umgebungsdaten via DHT-Sensor.
-* **Telemetrie:** Präzise Batterieüberwachung über einen Spannungsteiler am Analog-Eingang A0.
+## Funktionen
 
-### 🧠 Software-Logik & Features
-* **OLED-Schutz (Pixel-Shift):** Ein integrierter Pixel-Shift verschiebt den Bildinhalt alle zwei Minuten, um ein Einbrennen des OLED-Displays dauerhaft zu verhindern. Die Boot-Logik schützt gespeicherte Nutzer-Nachrichten im Flash-Speicher.
-* **Interaktion & Speicher:** Der Master-Toggle speichert aktuelle Farb- und Helligkeitswerte beim Ausschalten global. Beim Neustart wird der exakte vorherige Zustand wiederhergestellt.
-* **Gruß-Modus:** Ermöglicht animierte Symbole (Herz, Stern, Smiley) und individuelle Texte direkt auf dem Display.
-* **Smartes Energiemanagement:** Automatisches Warnsystem bei kritischer Spannung:
-  * Unter 10% Kapazität: Rotes Blinken (10s Intervall)
-  * Unter 5% Kapazität: Rotes Blinken (5s Intervall)
+- Haupt- und Sockelbeleuchtung mit Farben, Helligkeit und Effekten.
+- Grußmodus mit Texten und animierten Symbolen auf dem OLED.
+- Display-Pixel-Shift im Zwei-Minuten-Takt zur Verringerung statischer Bildbelastung.
+- Gespeicherte Einstellungen und Master-Toggle für die Bedienung.
+- DHT-Umweltdaten und geschätzter Akkuladestand aus der Spannung.
+- Akkuwarnung im Fünf- bzw. Zehn-Sekunden-Takt bei niedrigen Werten, sofern kein Ladesignal anliegt.
 
----
+## Hardware
 
-## 📐 Mechanischer Aufbau
-<div align="center">
-  <b>Gehäuse:</b> 15x15 cm Basis | 5 cm Sockel | 3D-Druck optimiert
-</div>
-<br>
+Der Referenzaufbau nutzt einen **Wemos D1 Mini**, OLED, DHT-Sensor, drei Taster, einen SN74AHCT125N-Levelshifter und einen Akkuaufbau mit 18650-Zelle/TP4056. Die mechanische Basis ist mit 15 × 15 cm und einem 5-cm-Sockel beschrieben. Versorgung und Schutzbeschaltung müssen zum tatsächlichen Aufbau passen.
 
-* **Design:** Die Pyramidenflächen sind für optimale Lichtdiffusion konstruiert. Ein transparenter Streifen am Sockel sorgt für ein dezentes "Passive Light".
-* **Bedienung:** Zentrales OLED-Display mit drei darunterliegenden haptischen Mikroschaltern für die direkte Systemsteuerung ganz ohne App-Zwang.
+Die Gerber-Dateien liegen als [ZIP im Repository-Stamm](Gerber_insane-moodlight-oled_PCB_insane-moodlight-copy_2026-01-19.zip), nicht in einem separaten Gerber-Ordner. Pinbelegung und LED-Konfiguration stehen in [insane-moodlight-oled.yaml](insane-moodlight-oled.yaml).
 
----
+## Installation
 
-## 🛠️ Installation & Smart Home Integration
-Jeder kann dieses Projekt nachbauen und in Home Assistant integrieren.
+1. Die Haupt-YAML in den eigenen ESPHome-Konfigurationsordner kopieren.
+2. Eigene Netzwerk-, API- und OTA-Daten in einer lokalen `secrets.yaml` hinterlegen:
 
-### Schritt-für-Schritt
-1. **Hardware Aufbau:** Im Repository befindet sich ein dedizierter Ordner mit den **Gerber-Dateien**. Damit kann die passende Platine direkt bei einem Platinen-Service (z.B. JLCPCB oder PCBWay) bestellt werden. Alternativ kannst du die Sensoren und Komponenten auch per Hand verdrahten.
-2. Auf der Platine wurden gezielt Lötpads für die Pins `RST`, `D0` und `RX` herausgeführt. Diese dienen als Schnittstellen für zukünftige Hardware-Erweiterungen.
-3. Erstelle eine `secrets.yaml` in deinem ESPHome Ordner und konfiguriere deine Netzwerkdaten:
-   ```yaml
-   api_encryption_key: "DEIN_API_KEY"
-   ota_password: "DEIN_OTA_PASSWORD"
-   wifi_ssid: "DEIN_WLAN_NAME"
-   wifi_password: "DEIN_WLAN_PASSWORT"
-   ap_password: "DEIN_FALLBACK_HOTSPOT_PASSWORT"
-   ```
-4. Lade den Code via **ESPHome** auf deinen Wemos D1 Mini hoch.
-5. **Home Assistant Integration:** Füge das Gerät zu Home Assistant hinzu. Die vollständige Steuerung erfolgt über HA, wo alle Parameter (Display-Helligkeit, individuelle Gruß-Texte, etc.) verwaltet werden.
+```yaml
+api_encryption_key: "DEIN_API_KEY"
+ota_password: "DEIN_OTA_PASSWORT"
+wifi_ssid: "DEIN_WLAN_NAME"
+wifi_password: "DEIN_WLAN_PASSWORT"
+ap_password: "DEIN_FALLBACK_PASSWORT"
+```
 
-<br>
-<div align="center">
-  <img src="steuerelemente.png" width="300" alt="Steuerelemente Home Assistant">
-  <img src="sensoren.png" width="300" alt="Sensoren Home Assistant">
-  <img src="diagnose.png" width="300" alt="Diagnose Home Assistant">
-</div>
-<br>
+3. Pins, Sensoren und LED-Anzahlen mit dem eigenen Aufbau abgleichen. Konfiguration in ESPHome prüfen und kompilieren.
+4. Den Wemos D1 Mini zunächst per USB flashen, danach das Gerät über ESPHome in Home Assistant hinzufügen.
+5. Taster, Beleuchtung und Display einzeln testen; anschließend die Gruß- und Akkuanzeige konfigurieren.
+
+Verwende eigene Zugangsdaten und veröffentliche deine ausgefüllte `secrets.yaml` nicht.
+
+## Bedienung & Kalibrierung
+
+Der Master-Toggle schaltet den gespeicherten Lichtzustand. Der Grußmodus aktiviert die gewählte Nachricht und den Lichteffekt und kehrt anschließend zum vorherigen Zustand zurück. Texte, Dauer, Displayparameter und Sensor-Offsets werden über die bereitgestellten Home-Assistant-Entitäten eingestellt.
+
+Der Akkuprozentsatz wird linear aus **3,2 bis 4,2 V** geschätzt. Er ersetzt keine gemessene Restkapazität. Bei höchstens 10 % warnt die Konfiguration alle zehn Sekunden, bei höchstens 5 % alle fünf Sekunden. Spannungsteiler und ADC-Kalibrierung müssen zum Board passen.
+
+<p align="center">
+  <img src="steuerelemente.png" alt="Home-Assistant-Steuerelemente" width="260">
+  <img src="sensoren.png" alt="Home-Assistant-Sensoren" width="260">
+  <img src="diagnose.png" alt="Diagnose" width="260">
+</p>
+
+## Fehlersuche
+
+- **Flackernde LEDs:** Versorgung, gemeinsame Masse, Datenleitung und Levelshifter prüfen.
+- **OLED bleibt leer:** I2C-Anschlüsse, Displayadresse und Konfiguration abgleichen.
+- **Akkustand unplausibel:** Zunächst Rohspannung, Spannungsteiler und ADC prüfen.
+- **Grußtext fehlt:** Text, Dauer und Grußmodus über Home Assistant prüfen; Pixel-Shift verhindert Einbrennen nicht garantiert.
+
+*Entwickelt für Angelina.*
+
+## Lizenz
+
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). Es gilt die bestehende Projektlizenz. Drittanbieter-Komponenten behalten ihre jeweiligen Lizenzen.
 
 ---
 
-## ⚖️ Lizenz
-Dieses komplette Projekt (Hardware und Software) steht unter der [CC BY-NC-SA 4.0 Lizenz](https://creativecommons.org/licenses/by-nc-sa/4.0/).
-Das bedeutet: Nachbauen und Anpassen für private Zwecke ist ausdrücklich erwünscht, jede kommerzielle Nutzung oder der Verkauf sind strikt verboten!
+## Builds und Releases
 
----
+Version: **2.2.1** ([VERSION](VERSION)). [GitHub Actions](.github/workflows/release.yml) prüft Pushes und Pull Requests. Ein Tag passend zu `v` + `VERSION` veröffentlicht das Release erst nach erfolgreichen Jobs; manuelle Läufe liefern Build-Artefakte. [Downloads](https://github.com/babeinlovexd/Insane-Moodlight-OLED/releases).
 
-## ☕ Support dieses Projekts
-Wenn dir das Projekt gefällt und du meine Arbeit unterstützen möchtest, freue ich mich riesig über einen virtuellen Kaffee!
+ESPHome-CI verwendet Platzhalter-Zugangsdaten und flasht keine Geräte. Vor dem Einsatz eigene Secrets und Pinbelegung prüfen.
 
-<a href="https://www.paypal.me/babeinlovexd">
-  <img src="https://img.shields.io/badge/Donate-PayPal-blue.svg?style=for-the-badge&logo=paypal" alt="Donate mit PayPal">
-</a>
+## Mitmachen
 
-Jeder Cent fließt direkt in die Entwicklung neuer Projekte! 🚀
----
+Fragen, Fehlerberichte und Beiträge sind willkommen. Nenne Version, Aufbau und Schritte zum Nachstellen im [Issue](https://github.com/babeinlovexd/Insane-Moodlight-OLED/issues). Größere Änderungen besprechen wir am besten vor einem Pull Request.
 
-## 👨‍💻 Entwickelt von
+Dieses Hobbyprojekt unterstützen: [PayPal](https://www.paypal.me/babeinlovexd).
 
-| [<img src="https://avatars.githubusercontent.com/u/43302033?v=4" width="100"><br><sub>**Christopher**</sub>](https://github.com/babeinlovexd) |
-| :---: |
-
-<div align="right">
-  <i>Entwickelt für Angelina.</i>
-</div>
+[BxD / BabeinlovexD](https://github.com/babeinlovexd) · [Website](https://babeinlovexd.de/)
